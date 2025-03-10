@@ -93,7 +93,7 @@ export default function DreamInput({ onSubmit, isLoading = false }: DreamInputPr
     <div className="w-full max-w-2xl mx-auto">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <label htmlFor="dreamText" className="block text-sm font-medium">
+          <label htmlFor="dreamText" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Describe your dream
           </label>
           <textarea
@@ -101,7 +101,7 @@ export default function DreamInput({ onSubmit, isLoading = false }: DreamInputPr
             value={dreamText}
             onChange={handleTextChange}
             placeholder="Enter your dream here or use voice input..."
-            className="w-full h-40 p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full h-40 p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-400"
             disabled={isLoading}
           />
           {error && <p className="text-red-500 text-sm">{error}</p>}

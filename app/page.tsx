@@ -9,6 +9,7 @@ import { saveDream, getDreams, deleteDream, clearDreams } from '../utils/localSt
 import { generateId } from '../utils/helpers';
 import { Dream, DreamAnalysis } from '../utils/types';
 import { Card } from '../components/ui/card';
+import { useTheme } from 'next-themes';
 
 export default function Home() {
   const [dreamText, setDreamText] = useState('');
@@ -17,6 +18,7 @@ export default function Home() {
   const [dreams, setDreams] = useState<Dream[]>([]);
   const [activeView, setActiveView] = useState<'input' | 'analysis' | 'history'>('input');
   const [selectedDream, setSelectedDream] = useState<Dream | null>(null);
+  const { theme, setTheme } = useTheme();
 
   // Load saved dreams from localStorage on component mount
   useEffect(() => {
@@ -26,17 +28,19 @@ export default function Home() {
     }
   }, []);
 
-  const handleDreamSubmit = (text: string) => {
+  const handleDreamSubmit = async (text: string) => {
     setDreamText(text);
     setIsAnalyzing(true);
     
-    // Simulate a delay for analysis (in a real app, this might be an API call)
-    setTimeout(() => {
-      const dreamAnalysis = analyzeDream(text);
+    try {
+      const dreamAnalysis = await analyzeDream(text);
       setAnalysis(dreamAnalysis);
+    } catch (error) {
+      console.error('Error analyzing dream:', error);
+    } finally {
       setIsAnalyzing(false);
       setActiveView('analysis');
-    }, 1500);
+    }
   };
 
   const handleSaveAnalysis = () => {
@@ -81,34 +85,47 @@ export default function Home() {
     handleNewDream();
   };
 
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      <header className="bg-white dark:bg-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Jungian Dream Analyzer</h1>
-            <nav className="flex space-x-4">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Jungian Dream Analyzer</h1>
+            <div className="flex items-center space-x-4">
               <button
-                onClick={() => setActiveView('input')}
-                className={`px-3 py-2 rounded-md text-sm font-medium ${
-                  activeView === 'input'
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
+                onClick={toggleTheme}
+                className="p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                aria-label="Toggle dark mode"
               >
-                New Dream
+                {theme === 'dark' ? '🌞' : '🌙'}
               </button>
-              <button
-                onClick={() => setActiveView('history')}
-                className={`px-3 py-2 rounded-md text-sm font-medium ${
-                  activeView === 'history'
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                History
-              </button>
-            </nav>
+              <nav className="flex space-x-4">
+                <button
+                  onClick={() => setActiveView('input')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    activeView === 'input'
+                      ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  New Dream
+                </button>
+                <button
+                  onClick={() => setActiveView('history')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    activeView === 'history'
+                      ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  History
+                </button>
+              </nav>
+            </div>
           </div>
         </div>
       </header>
@@ -118,8 +135,8 @@ export default function Home() {
           {activeView === 'input' && (
             <>
               <div className="mb-8 text-center">
-                <h2 className="text-xl font-semibold mb-2">Enter Your Dream</h2>
-                <p className="text-gray-600">
+                <h2 className="text-xl font-semibold mb-2 dark:text-white">Enter Your Dream</h2>
+                <p className="text-gray-600 dark:text-gray-400">
                   Describe your dream in detail or use voice input. Our analyzer will interpret it using Jungian psychology.
                 </p>
               </div>
@@ -147,9 +164,9 @@ export default function Home() {
         </div>
       </main>
 
-      <footer className="bg-white">
+      <footer className="bg-white dark:bg-gray-800">
         <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-gray-500 text-sm">
+          <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
             Jungian Dream Analyzer &copy; {new Date().getFullYear()} - All dream analyses are based on Jungian psychology principles
           </p>
         </div>

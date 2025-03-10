@@ -82,39 +82,39 @@ ${analysis.archetypes.map(a => `- ${a.type}: ${a.description}`).join('\n')}
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <Card className="p-6">
+      <Card className="p-6 dark:bg-gray-800 dark:border-gray-700">
         <div className="mb-4">
-          <h2 className="text-xl font-bold mb-2">Dream Analysis</h2>
-          <p className="text-sm text-gray-500">
+          <h2 className="text-xl font-bold mb-2 dark:text-white">Dream Analysis</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Analyzed on {formatDate(analysis.timestamp)}
           </p>
         </div>
 
         <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-2">Your Dream</h3>
-          <div className="bg-gray-50 p-3 rounded-md">
-            <p className="whitespace-pre-wrap">{dreamContent}</p>
+          <h3 className="text-lg font-semibold mb-2 dark:text-white">Your Dream</h3>
+          <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md">
+            <p className="whitespace-pre-wrap dark:text-gray-200">{dreamContent}</p>
           </div>
         </div>
 
         <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-2">Jungian Interpretation</h3>
-          <div className="prose max-w-none">
+          <h3 className="text-lg font-semibold mb-2 dark:text-white">Jungian Interpretation</h3>
+          <div className="prose max-w-none dark:prose-invert">
             {formatText(analysis.interpretation)}
           </div>
         </div>
 
         {analysis.symbols.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-2">Symbols Identified</h3>
+            <h3 className="text-lg font-semibold mb-2 dark:text-white">Symbols Identified</h3>
             <ul className="list-disc pl-5 space-y-1">
               {analysis.symbols.map((symbol, index) => (
-                <li key={index}>
+                <li key={index} className="dark:text-gray-200">
                   <span className="font-medium">{symbol.name}</span>
                   {symbol.frequency > 1 && (
-                    <span className="text-sm text-gray-500"> (appears {symbol.frequency} times)</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400"> (appears {symbol.frequency} times)</span>
                   )}
-                  <p className="text-sm">{symbol.meaning}</p>
+                  <p className="text-sm dark:text-gray-300">{symbol.meaning}</p>
                 </li>
               ))}
             </ul>
@@ -123,13 +123,13 @@ ${analysis.archetypes.map(a => `- ${a.type}: ${a.description}`).join('\n')}
 
         {analysis.archetypes.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-2">Archetypes Identified</h3>
+            <h3 className="text-lg font-semibold mb-2 dark:text-white">Archetypes Identified</h3>
             <ul className="list-disc pl-5 space-y-2">
               {analysis.archetypes.map((archetype, index) => (
-                <li key={index}>
+                <li key={index} className="dark:text-gray-200">
                   <span className="font-medium capitalize">{archetype.type}</span>
-                  <p className="text-sm">{archetype.description}</p>
-                  <p className="text-sm text-gray-600">{archetype.significance}</p>
+                  <p className="text-sm dark:text-gray-300">{archetype.description}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{archetype.significance}</p>
                 </li>
               ))}
             </ul>
@@ -140,10 +140,10 @@ ${analysis.archetypes.map(a => `- ${a.type}: ${a.description}`).join('\n')}
           <Button onClick={handleSave} disabled={saved}>
             {saved ? 'Saved' : 'Save Analysis'}
           </Button>
-          <Button onClick={handleDownload} variant="outline">
+          <Button onClick={handleDownload} variant="outline" className="dark:border-gray-600 dark:text-gray-200">
             Download as Text
           </Button>
-          <Button onClick={onNewDream} variant="outline" className="ml-auto">
+          <Button onClick={onNewDream} variant="outline" className="ml-auto dark:border-gray-600 dark:text-gray-200">
             Analyze Another Dream
           </Button>
         </div>
