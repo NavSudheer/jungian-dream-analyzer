@@ -9,7 +9,7 @@ export interface DreamAnalysis {
   symbols: Symbol[];
   archetypes: Archetype[];
   interpretation: string;
-  timestamp: Date;
+  timestamp: Date | string;
 }
 
 export interface Symbol {

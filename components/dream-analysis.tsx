@@ -50,6 +50,8 @@ ${analysis.archetypes.map(a => `- ${a.type}: ${a.description}`).join('\n')}
 
   // Function to convert markdown-style formatting to JSX
   const formatText = (text: string) => {
+    if (!text) return [];
+    
     // Split by newlines
     return text.split('\n').map((line, index) => {
       // Bold text (surrounded by **)
