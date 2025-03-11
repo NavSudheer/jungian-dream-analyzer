@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       messages: [
         { 
           role: "system", 
-          content: "You are a Jungian psychologist specializing in dream analysis. Provide insightful interpretations based on Carl Jung's theories of the collective unconscious, archetypes, and dream symbolism." 
+          content: "You are a Jungian psychologist specializing in dream analysis. Provide insightful interpretations based on Carl Jung's theories of the collective unconscious, archetypes, and dream symbolism. Always respond with valid JSON." 
         },
         { role: "user", content: prompt }
       ],
@@ -56,16 +56,85 @@ export async function POST(request: NextRequest) {
     // Create a ReadableStream for the response
     const readableStream = new ReadableStream({
       async start(controller) {
-        // Send a timestamp at the beginning
-        controller.enqueue(JSON.stringify({ timestamp: new Date() }) + '\n');
-
+        // Initialize the analysis object
+        const initialAnalysis = {
+          symbols: [],
+          archetypes: [],
+          interpretation: "",
+          timestamp: new Date()
+        };
+        
+        // Send the initial analysis object
+        controller.enqueue(JSON.stringify(initialAnalysis) + '\n');
+        
+        let accumulatedJson = "";
+        let currentAnalysis = { ...initialAnalysis };
+        
         // Process each chunk from OpenAI
         for await (const chunk of stream) {
           const content = chunk.choices[0]?.delta?.content || '';
           if (content) {
-            controller.enqueue(content);
+            // Accumulate the JSON string
+            accumulatedJson += content;
+            
+            try {
+              // Try to parse the accumulated JSON
+              // We'll wrap it in curly braces in case we've only received a partial object
+              const wrappedJson = `{${accumulatedJson}}`;
+              const parsedJson = JSON.parse(wrappedJson);
+              
+              // Update the current analysis with any new data
+              if (parsedJson.symbols) {
+                currentAnalysis.symbols = parsedJson.symbols;
+              }
+              if (parsedJson.archetypes) {
+                currentAnalysis.archetypes = parsedJson.archetypes;
+              }
+              if (parsedJson.interpretation) {
+                currentAnalysis.interpretation = parsedJson.interpretation;
+              }
+              
+              // Send the updated analysis
+              controller.enqueue(JSON.stringify(currentAnalysis) + '\n');
+            } catch (e) {
+              // If parsing fails, try to extract interpretation text
+              // This is a fallback for when we have partial JSON
+              try {
+                // Look for interpretation field
+                const interpretationMatch = accumulatedJson.match(/"interpretation"\s*:\s*"([^"]*)"/);
+                if (interpretationMatch && interpretationMatch[1]) {
+                  currentAnalysis.interpretation = interpretationMatch[1];
+                  controller.enqueue(JSON.stringify(currentAnalysis) + '\n');
+                }
+              } catch (innerError) {
+                // Ignore parsing errors for partial data
+              }
+            }
           }
         }
+        
+        // Try one final parse of the complete response
+        try {
+          // The response might be wrapped in markdown code blocks
+          const jsonMatch = accumulatedJson.match(/```json\n([\s\S]*?)\n```/) || 
+                           accumulatedJson.match(/```\n([\s\S]*?)\n```/) || 
+                           accumulatedJson.match(/({[\s\S]*})/);
+          
+          if (jsonMatch) {
+            const jsonString = jsonMatch[1];
+            const finalAnalysis = JSON.parse(jsonString);
+            
+            // Send the final complete analysis
+            controller.enqueue(JSON.stringify({
+              ...finalAnalysis,
+              timestamp: initialAnalysis.timestamp
+            }) + '\n');
+          }
+        } catch (e) {
+          // If final parsing fails, send what we have
+          controller.enqueue(JSON.stringify(currentAnalysis) + '\n');
+        }
+        
         controller.close();
       },
     });

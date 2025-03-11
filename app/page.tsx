@@ -18,7 +18,6 @@ export default function Home() {
   const [dreams, setDreams] = useState<Dream[]>([]);
   const [activeView, setActiveView] = useState<'input' | 'analysis' | 'history'>('input');
   const [selectedDream, setSelectedDream] = useState<Dream | null>(null);
-  const [streamingInterpretation, setStreamingInterpretation] = useState<string>('');
   const { theme, setTheme } = useTheme();
 
   // Load saved dreams from localStorage on component mount
@@ -32,7 +31,6 @@ export default function Home() {
   const handleDreamSubmit = async (text: string) => {
     setDreamText(text);
     setIsAnalyzing(true);
-    setStreamingInterpretation('');
     setActiveView('analysis');
     
     try {
@@ -45,8 +43,8 @@ export default function Home() {
       });
       
       // Call analyzeDream with a callback for streaming updates
-      const dreamAnalysis = await analyzeDream(text, (chunk) => {
-        setStreamingInterpretation(prev => prev + chunk);
+      const dreamAnalysis = await analyzeDream(text, (updatedAnalysis) => {
+        setAnalysis(updatedAnalysis);
       });
       
       // Update with the complete analysis
@@ -161,23 +159,9 @@ export default function Home() {
 
           {activeView === 'analysis' && (
             <>
-              {isAnalyzing && streamingInterpretation && (
-                <div className="w-full max-w-2xl mx-auto mb-4">
-                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                    <h3 className="text-lg font-semibold mb-4 dark:text-white">Analyzing your dream...</h3>
-                    <div className="prose dark:prose-invert max-w-none">
-                      <p className="whitespace-pre-wrap">{streamingInterpretation}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {analysis && !isAnalyzing && (
+              {analysis && (
                 <DreamAnalysisDisplay
-                  analysis={{
-                    ...analysis,
-                    interpretation: analysis.interpretation || streamingInterpretation
-                  }}
+                  analysis={analysis}
                   dreamContent={selectedDream?.content || dreamText}
                   onSave={handleSaveAnalysis}
                   onNewDream={handleNewDream}

@@ -5,7 +5,7 @@ import { DreamAnalysis } from '../utils/types';
  */
 export const analyzeDream = async (
   dreamText: string, 
-  onPartialResponse?: (text: string) => void
+  onPartialResponse?: (analysis: DreamAnalysis) => void
 ): Promise<DreamAnalysis> => {
   try {
     const response = await fetch('/api/analyze-dream', {
@@ -27,8 +27,8 @@ export const analyzeDream = async (
         throw new Error('Response body is not readable');
       }
 
-      let timestamp: Date | null = null;
-      let completeResponse = '';
+      let latestAnalysis: DreamAnalysis | null = null;
+      let buffer = '';
 
       // Read the stream
       while (true) {
@@ -37,67 +37,44 @@ export const analyzeDream = async (
 
         // Convert the chunk to text
         const chunk = new TextDecoder().decode(value);
+        buffer += chunk;
         
-        // Check if the first chunk contains the timestamp
-        if (completeResponse === '' && chunk.startsWith('{')) {
-          const endOfJson = chunk.indexOf('\n');
-          if (endOfJson !== -1) {
+        // Process each line in the buffer
+        while (buffer.includes('\n')) {
+          const lineEndIndex = buffer.indexOf('\n');
+          const line = buffer.substring(0, lineEndIndex).trim();
+          buffer = buffer.substring(lineEndIndex + 1);
+          
+          if (line) {
             try {
-              const timestampObj = JSON.parse(chunk.substring(0, endOfJson));
-              timestamp = new Date(timestampObj.timestamp);
+              // Parse the JSON line
+              const analysisUpdate = JSON.parse(line);
               
-              // Add the rest of the chunk to the response
-              const remainingChunk = chunk.substring(endOfJson + 1);
-              completeResponse += remainingChunk;
-              
-              // Call the callback with the partial response
-              if (onPartialResponse) {
-                onPartialResponse(remainingChunk);
+              // Ensure timestamp is a Date object
+              if (analysisUpdate.timestamp && typeof analysisUpdate.timestamp === 'string') {
+                analysisUpdate.timestamp = new Date(analysisUpdate.timestamp);
               }
               
-              continue;
+              // Update the latest analysis
+              latestAnalysis = analysisUpdate;
+              
+              // Call the callback with the partial analysis
+              if (onPartialResponse) {
+                onPartialResponse(analysisUpdate);
+              }
             } catch (e) {
-              // If parsing fails, treat it as a normal chunk
-              console.error('Error parsing timestamp:', e);
+              console.error('Error parsing JSON from stream:', e);
             }
           }
         }
-        
-        // Add the chunk to the complete response
-        completeResponse += chunk;
-        
-        // Call the callback with the partial response
-        if (onPartialResponse) {
-          onPartialResponse(chunk);
-        }
       }
 
-      // Try to parse the complete response as JSON
-      try {
-        // The response might contain markdown formatting, so we need to extract just the JSON part
-        const jsonMatch = completeResponse.match(/```json\n([\s\S]*?)\n```/) || 
-                         completeResponse.match(/```\n([\s\S]*?)\n```/) || 
-                         completeResponse.match(/({[\s\S]*})/);
-        
-        if (jsonMatch) {
-          const jsonString = jsonMatch[1];
-          const analysisData = JSON.parse(jsonString);
-          
-          // Add timestamp
-          analysisData.timestamp = timestamp || new Date();
-          
-          return analysisData;
-        }
-      } catch (parseError) {
-        console.error('Error parsing JSON from stream:', parseError);
-      }
-
-      // If JSON parsing fails, return a structured response with the raw text
-      return {
+      // Return the latest analysis or a fallback
+      return latestAnalysis || {
         symbols: [],
         archetypes: [],
-        interpretation: completeResponse,
-        timestamp: timestamp || new Date(),
+        interpretation: 'No valid analysis was received.',
+        timestamp: new Date(),
       };
     } else {
       // Handle non-streaming response (fallback)
