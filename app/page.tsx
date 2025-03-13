@@ -1,102 +1,192 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect } from 'react';
+import DreamInput from '../components/dream-input';
+import DreamAnalysisDisplay from '../components/dream-analysis';
+import DreamHistory from '../components/dream-history';
+import { analyzeDream } from '../services/dreamAnalysis';
+import { saveDream, getDreams, deleteDream, clearDreams } from '../utils/localStorage';
+import { generateId } from '../utils/helpers';
+import { Dream, DreamAnalysis } from '../utils/types';
+import { Card } from '../components/ui/card';
+import { useTheme } from 'next-themes';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [dreamText, setDreamText] = useState('');
+  const [analysis, setAnalysis] = useState<DreamAnalysis | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [dreams, setDreams] = useState<Dream[]>([]);
+  const [activeView, setActiveView] = useState<'input' | 'analysis' | 'history'>('input');
+  const [selectedDream, setSelectedDream] = useState<Dream | null>(null);
+  const { theme, setTheme } = useTheme();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  // Load saved dreams from localStorage on component mount
+  useEffect(() => {
+    // Only run on client-side
+    if (typeof window !== 'undefined') {
+      setDreams(getDreams());
+    }
+  }, []);
+
+  const handleDreamSubmit = async (text: string) => {
+    setDreamText(text);
+    setIsAnalyzing(true);
+    setActiveView('analysis');
+    
+    try {
+      // Create a partial analysis object to display while streaming
+      setAnalysis({
+        symbols: [],
+        archetypes: [],
+        interpretation: '',
+        timestamp: new Date(),
+      });
+      
+      // Call analyzeDream with a callback for streaming updates
+      const dreamAnalysis = await analyzeDream(text, (updatedAnalysis) => {
+        setAnalysis(updatedAnalysis);
+      });
+      
+      // Update with the complete analysis
+      setAnalysis(dreamAnalysis);
+    } catch (error) {
+      console.error('Error analyzing dream:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleSaveAnalysis = () => {
+    if (dreamText && analysis) {
+      const dream: Dream = {
+        id: generateId(),
+        content: dreamText,
+        timestamp: new Date(),
+        analysis: analysis,
+      };
+      
+      saveDream(dream);
+      setDreams(getDreams());
+    }
+  };
+
+  const handleNewDream = () => {
+    setDreamText('');
+    setAnalysis(null);
+    setSelectedDream(null);
+    setActiveView('input');
+  };
+
+  const handleSelectDream = (dream: Dream) => {
+    setSelectedDream(dream);
+    setActiveView('analysis');
+  };
+
+  const handleDeleteDream = (dreamId: string) => {
+    deleteDream(dreamId);
+    setDreams(getDreams());
+    
+    // If the deleted dream is currently selected, go back to input view
+    if (selectedDream && selectedDream.id === dreamId) {
+      handleNewDream();
+    }
+  };
+
+  const handleClearAllDreams = () => {
+    clearDreams();
+    setDreams([]);
+    handleNewDream();
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      <header className="bg-white dark:bg-gray-800 shadow-sm">
+        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Jungian Dream Analyzer</h1>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                aria-label="Toggle dark mode"
+              >
+                {theme === 'dark' ? '🌞' : '🌙'}
+              </button>
+              <nav className="flex space-x-4">
+                <button
+                  onClick={() => setActiveView('input')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    activeView === 'input'
+                      ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  New Dream
+                </button>
+                <button
+                  onClick={() => setActiveView('history')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    activeView === 'history'
+                      ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  History
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="px-4 py-6 sm:px-0">
+          {activeView === 'input' && (
+            <>
+              <div className="mb-8 text-center">
+                <h2 className="text-xl font-semibold mb-2 dark:text-white">Enter Your Dream</h2>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Describe your dream in detail or use voice input. Our analyzer will interpret it using Jungian psychology.
+                </p>
+              </div>
+              <DreamInput onSubmit={handleDreamSubmit} isLoading={isAnalyzing} />
+            </>
+          )}
+
+          {activeView === 'analysis' && (
+            <>
+              {analysis && (
+                <DreamAnalysisDisplay
+                  analysis={analysis}
+                  dreamContent={selectedDream?.content || dreamText}
+                  onSave={handleSaveAnalysis}
+                  onNewDream={handleNewDream}
+                />
+              )}
+            </>
+          )}
+
+          {activeView === 'history' && (
+            <DreamHistory
+              dreams={dreams}
+              onSelect={handleSelectDream}
+              onDelete={handleDeleteDream}
+              onClearAll={handleClearAllDreams}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          )}
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      <footer className="bg-white dark:bg-gray-800">
+        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
+            Jungian Dream Analyzer &copy; {new Date().getFullYear()} - All dream analyses are based on Jungian psychology principles
+          </p>
+        </div>
       </footer>
     </div>
   );
