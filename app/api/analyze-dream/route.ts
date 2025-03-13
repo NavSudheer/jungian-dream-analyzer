@@ -69,6 +69,8 @@ export async function POST(request: NextRequest) {
         
         let accumulatedJson = "";
         let currentAnalysis = { ...initialAnalysis };
+        let currentInterpretation = "";
+        let lastSentLength = 0;
         
         // Process each chunk from OpenAI
         for await (const chunk of stream) {
@@ -77,38 +79,49 @@ export async function POST(request: NextRequest) {
             // Accumulate the JSON string
             accumulatedJson += content;
             
+            // Try to extract interpretation text as it comes in
             try {
-              // Try to parse the accumulated JSON
-              // We'll wrap it in curly braces in case we've only received a partial object
-              const wrappedJson = `{${accumulatedJson}}`;
-              const parsedJson = JSON.parse(wrappedJson);
-              
-              // Update the current analysis with any new data
-              if (parsedJson.symbols) {
-                currentAnalysis.symbols = parsedJson.symbols;
-              }
-              if (parsedJson.archetypes) {
-                currentAnalysis.archetypes = parsedJson.archetypes;
-              }
-              if (parsedJson.interpretation) {
-                currentAnalysis.interpretation = parsedJson.interpretation;
-              }
-              
-              // Send the updated analysis
-              controller.enqueue(JSON.stringify(currentAnalysis) + '\n');
-            } catch (e) {
-              // If parsing fails, try to extract interpretation text
-              // This is a fallback for when we have partial JSON
-              try {
-                // Look for interpretation field
-                const interpretationMatch = accumulatedJson.match(/"interpretation"\s*:\s*"([^"]*)"/);
-                if (interpretationMatch && interpretationMatch[1]) {
-                  currentAnalysis.interpretation = interpretationMatch[1];
+              // Look for interpretation field in the accumulated JSON
+              const interpretationMatch = accumulatedJson.match(/"interpretation"\s*:\s*"([^"]*)/);
+              if (interpretationMatch && interpretationMatch[1]) {
+                currentInterpretation = interpretationMatch[1];
+                
+                // Only send update if we have new content to show (at least 5 new characters)
+                if (currentInterpretation.length > lastSentLength + 5 || content.includes(".") || content.includes("!") || content.includes("?")) {
+                  currentAnalysis.interpretation = currentInterpretation;
+                  lastSentLength = currentInterpretation.length;
                   controller.enqueue(JSON.stringify(currentAnalysis) + '\n');
                 }
-              } catch (innerError) {
-                // Ignore parsing errors for partial data
               }
+              
+              // Try to parse complete JSON objects when possible
+              if (accumulatedJson.includes('}')) {
+                const jsonMatch = accumulatedJson.match(/({[\s\S]*})/);
+                if (jsonMatch) {
+                  try {
+                    const parsedJson = JSON.parse(jsonMatch[1]);
+                    
+                    // Update the current analysis with any new data
+                    if (parsedJson.symbols) {
+                      currentAnalysis.symbols = parsedJson.symbols;
+                    }
+                    if (parsedJson.archetypes) {
+                      currentAnalysis.archetypes = parsedJson.archetypes;
+                    }
+                    if (parsedJson.interpretation) {
+                      currentAnalysis.interpretation = parsedJson.interpretation;
+                      lastSentLength = currentAnalysis.interpretation.length;
+                    }
+                    
+                    // Send the updated analysis
+                    controller.enqueue(JSON.stringify(currentAnalysis) + '\n');
+                  } catch (e) {
+                    // Ignore parsing errors for incomplete JSON
+                  }
+                }
+              }
+            } catch (e) {
+              // Ignore parsing errors for partial data
             }
           }
         }

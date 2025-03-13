@@ -29,6 +29,7 @@ export const analyzeDream = async (
 
       let latestAnalysis: DreamAnalysis | null = null;
       let buffer = '';
+      let decoder = new TextDecoder();
 
       // Read the stream
       while (true) {
@@ -36,12 +37,12 @@ export const analyzeDream = async (
         if (done) break;
 
         // Convert the chunk to text
-        const chunk = new TextDecoder().decode(value);
+        const chunk = decoder.decode(value, { stream: true });
         buffer += chunk;
         
         // Process each line in the buffer
-        while (buffer.includes('\n')) {
-          const lineEndIndex = buffer.indexOf('\n');
+        let lineEndIndex;
+        while ((lineEndIndex = buffer.indexOf('\n')) !== -1) {
           const line = buffer.substring(0, lineEndIndex).trim();
           buffer = buffer.substring(lineEndIndex + 1);
           
@@ -66,6 +67,26 @@ export const analyzeDream = async (
               console.error('Error parsing JSON from stream:', e);
             }
           }
+        }
+      }
+
+      // Process any remaining buffer content
+      if (buffer.trim()) {
+        try {
+          const analysisUpdate = JSON.parse(buffer.trim());
+          
+          // Ensure timestamp is a Date object
+          if (analysisUpdate.timestamp && typeof analysisUpdate.timestamp === 'string') {
+            analysisUpdate.timestamp = new Date(analysisUpdate.timestamp);
+          }
+          
+          latestAnalysis = analysisUpdate;
+          
+          if (onPartialResponse) {
+            onPartialResponse(analysisUpdate);
+          }
+        } catch (e) {
+          console.error('Error parsing final JSON from stream:', e);
         }
       }
 

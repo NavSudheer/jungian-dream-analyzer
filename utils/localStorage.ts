@@ -2,10 +2,15 @@ import { Dream } from './types';
 
 const DREAMS_STORAGE_KEY = 'jungian_dreams';
 
+// Helper to check if we're on the client side
+const isClient = typeof window !== 'undefined';
+
 /**
  * Save a dream to local storage
  */
 export const saveDream = (dream: Dream): void => {
+  if (!isClient) return;
+  
   try {
     const dreams = getDreams();
     dreams.push(dream);
@@ -19,6 +24,8 @@ export const saveDream = (dream: Dream): void => {
  * Get all dreams from local storage
  */
 export const getDreams = (): Dream[] => {
+  if (!isClient) return [];
+  
   try {
     const dreamsJson = localStorage.getItem(DREAMS_STORAGE_KEY);
     if (!dreamsJson) return [];
@@ -43,6 +50,8 @@ export const getDreams = (): Dream[] => {
  * Delete a dream from local storage
  */
 export const deleteDream = (dreamId: string): void => {
+  if (!isClient) return;
+  
   try {
     const dreams = getDreams();
     const filteredDreams = dreams.filter(dream => dream.id !== dreamId);
@@ -56,6 +65,8 @@ export const deleteDream = (dreamId: string): void => {
  * Clear all dreams from local storage
  */
 export const clearDreams = (): void => {
+  if (!isClient) return;
+  
   try {
     localStorage.removeItem(DREAMS_STORAGE_KEY);
   } catch (error) {
