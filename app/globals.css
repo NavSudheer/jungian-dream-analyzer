@@ -79,6 +79,17 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  
+  /* Dream analyzer custom colors */
+  --dream-primary: #6366f1;
+  --dream-primary-light: #818cf8;
+  --dream-secondary: #c084fc;
+  --dream-accent: #f472b6;
+  --dream-bg-gradient-start: #f9fafb;
+  --dream-bg-gradient-end: #f3f4f6;
+  --dream-card-bg: rgba(255, 255, 255, 0.9);
+  --dream-card-border: rgba(209, 213, 219, 0.5);
+  --dream-card-shadow: rgba(0, 0, 0, 0.05);
 }
 
 .dark {
@@ -114,6 +125,17 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
+  
+  /* Dream analyzer custom dark colors */
+  --dream-primary: #818cf8;
+  --dream-primary-light: #a5b4fc;
+  --dream-secondary: #c084fc;
+  --dream-accent: #f472b6;
+  --dream-bg-gradient-start: #111827;
+  --dream-bg-gradient-end: #1f2937;
+  --dream-card-bg: rgba(31, 41, 55, 0.8);
+  --dream-card-border: rgba(55, 65, 81, 0.5);
+  --dream-card-shadow: rgba(0, 0, 0, 0.3);
 }
 
 @layer base {
@@ -122,5 +144,239 @@
   }
   body {
     @apply bg-background text-foreground;
+    background: linear-gradient(135deg, var(--dream-bg-gradient-start), var(--dream-bg-gradient-end));
+    min-height: 100vh;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    letter-spacing: -0.01em;
   }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    line-height: 1.2;
+    margin-bottom: 0.5em;
+  }
+  
+  h1 {
+    font-size: 2.25rem;
+    letter-spacing: -0.03em;
+  }
+  
+  h2 {
+    font-size: 1.75rem;
+    letter-spacing: -0.02em;
+  }
+  
+  h3 {
+    font-size: 1.5rem;
+    letter-spacing: -0.02em;
+  }
+  
+  p {
+    line-height: 1.6;
+    margin-bottom: 1em;
+  }
+}
+
+/* Dreamlike UI Elements */
+.dream-card {
+  background: var(--dream-card-bg);
+  border: 1px solid var(--dream-card-border);
+  box-shadow: 0 8px 30px var(--dream-card-shadow);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.dream-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px var(--dream-card-shadow);
+}
+
+.dream-input {
+  border: 2px solid rgba(99, 102, 241, 0.2);
+  transition: all 0.3s ease;
+}
+
+.dream-input:focus {
+  border-color: var(--dream-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.dream-button {
+  background: linear-gradient(135deg, var(--dream-primary), var(--dream-secondary));
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.dream-button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.dream-button:hover::after {
+  opacity: 1;
+}
+
+.dream-button:active {
+  transform: translateY(1px);
+}
+
+.dream-button-secondary {
+  background: transparent;
+  border: 1px solid var(--dream-primary);
+  color: var(--dream-primary);
+}
+
+.dream-button-secondary:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+/* Animated background */
+.animated-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  opacity: 0.4;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.15) 0%, transparent 20%),
+    radial-gradient(circle at 80% 20%, rgba(192, 132, 252, 0.15) 0%, transparent 20%),
+    radial-gradient(circle at 40% 80%, rgba(244, 114, 182, 0.15) 0%, transparent 20%),
+    radial-gradient(circle at 70% 60%, rgba(129, 140, 248, 0.15) 0%, transparent 20%);
+  animation: pulse 15s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 100% 100%;
+  }
+}
+
+/* Typing animation styles */
+.typing-animation {
+  position: relative;
+}
+
+.typing-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  background-color: var(--dream-primary);
+  margin-left: 2px;
+  animation: blink 1s step-end infinite;
+  vertical-align: text-bottom;
+}
+
+@keyframes blink {
+  from, to {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Add a subtle highlight to the newest text */
+.typing-animation p:last-child {
+  background: linear-gradient(90deg, transparent 0%, rgba(99, 102, 241, 0.05) 100%);
+  border-radius: 4px;
+  padding: 2px 4px;
+  transition: background 0.5s ease-out;
+}
+
+.dark .typing-animation p:last-child {
+  background: linear-gradient(90deg, transparent 0%, rgba(129, 140, 248, 0.1) 100%);
+}
+
+/* Dream symbols and archetypes styling */
+.dream-symbol {
+  border-left: 3px solid var(--dream-primary);
+  padding-left: 1rem;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+}
+
+.dream-symbol:hover {
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.dream-archetype {
+  border-left: 3px solid var(--dream-secondary);
+  padding-left: 1rem;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+}
+
+.dream-archetype:hover {
+  background: rgba(192, 132, 252, 0.05);
+}
+
+/* Page transitions */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.5);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(129, 140, 248, 0.3);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(129, 140, 248, 0.5);
 }
