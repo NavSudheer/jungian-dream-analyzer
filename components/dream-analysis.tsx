@@ -12,13 +12,80 @@ interface DreamAnalysisDisplayProps {
   dreamContent: string;
   onSave: () => void;
   onNewDream: () => void;
+  isLoading?: boolean;
 }
+
+// Loading animation component
+const LoadingAnimation = () => (
+  <motion.div 
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    className="flex flex-col items-center justify-center py-8 space-y-6"
+  >
+    <div className="relative w-20 h-20">
+      {/* Main spinner */}
+      <motion.div 
+        className="absolute top-0 left-0 w-full h-full rounded-full border-4 border-indigo-200 dark:border-indigo-900"
+      />
+      <motion.div 
+        className="absolute top-0 left-0 w-full h-full rounded-full border-4 border-t-indigo-500 border-r-transparent border-b-transparent border-l-transparent"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+      />
+      
+      {/* Inner spinner (counter-rotating) */}
+      <motion.div 
+        className="absolute top-2 left-2 right-2 bottom-2 rounded-full border-4 border-purple-200 dark:border-purple-900"
+      />
+      <motion.div 
+        className="absolute top-2 left-2 right-2 bottom-2 rounded-full border-4 border-t-transparent border-r-purple-500 border-b-transparent border-l-transparent"
+        animate={{ rotate: -360 }}
+        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+      />
+      
+      {/* Center moon icon */}
+      <motion.div 
+        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xl"
+        animate={{ 
+          scale: [1, 1.2, 1],
+          opacity: [0.7, 1, 0.7]
+        }}
+        transition={{ duration: 2, repeat: Infinity }}
+      >
+        🌙
+      </motion.div>
+    </div>
+    
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.3 }}
+      className="text-center space-y-3"
+    >
+      <p className="text-lg font-medium text-indigo-600 dark:text-indigo-400">Interpreting your dream...</p>
+      <div className="flex justify-center space-x-1">
+        {["Analyzing symbols", "Identifying archetypes", "Exploring unconscious"].map((text, i) => (
+          <motion.span 
+            key={i}
+            className="text-sm text-gray-500 dark:text-gray-400 px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 + (i * 0.2) }}
+          >
+            {text}
+          </motion.span>
+        ))}
+      </div>
+    </motion.div>
+  </motion.div>
+);
 
 export default function DreamAnalysisDisplay({
   analysis,
   dreamContent,
   onSave,
   onNewDream,
+  isLoading = false,
 }: DreamAnalysisDisplayProps) {
   const [saved, setSaved] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -26,14 +93,27 @@ export default function DreamAnalysisDisplay({
   const [activeTab, setActiveTab] = useState<'interpretation' | 'symbols' | 'archetypes'>('interpretation');
   const interpretationRef = useRef<HTMLDivElement>(null);
 
+  // Add debugging logs
+  useEffect(() => {
+    console.log("DreamAnalysisDisplay render state:", {
+      hasInterpretation: !!analysis.interpretation,
+      interpretationLength: analysis.interpretation?.length || 0,
+      isTyping,
+      isLoading,
+      activeTab
+    });
+  }, [analysis.interpretation, isTyping, isLoading, activeTab]);
+
   // Track when the interpretation changes to show typing animation
   useEffect(() => {
     if (analysis.interpretation && analysis.interpretation !== lastInterpretation) {
+      console.log("Interpretation changed, setting isTyping to true");
       setIsTyping(true);
       setLastInterpretation(analysis.interpretation);
       
       // Set a small timeout to simulate typing completion
       const typingTimeout = setTimeout(() => {
+        console.log("Typing timeout completed, setting isTyping to false");
         setIsTyping(false);
       }, 300);
       
@@ -45,6 +125,30 @@ export default function DreamAnalysisDisplay({
       return () => clearTimeout(typingTimeout);
     }
   }, [analysis.interpretation, lastInterpretation]);
+
+  // Add a safety timeout to ensure typing animation doesn't get stuck
+  useEffect(() => {
+    if (isTyping) {
+      const safetyTimeout = setTimeout(() => {
+        console.log("Safety timeout triggered - forcing isTyping to false");
+        setIsTyping(false);
+      }, 3000); // Force typing to end after 3 seconds max
+      
+      return () => clearTimeout(safetyTimeout);
+    }
+  }, [isTyping]);
+
+  // Force display of content if isLoading is false but we're still in typing state for too long
+  useEffect(() => {
+    if (!isLoading && analysis.interpretation && isTyping) {
+      const forceDisplayTimeout = setTimeout(() => {
+        console.log("Force display timeout triggered");
+        setIsTyping(false);
+      }, 1500);
+      
+      return () => clearTimeout(forceDisplayTimeout);
+    }
+  }, [isLoading, analysis.interpretation, isTyping]);
 
   const handleSave = () => {
     onSave();
@@ -191,54 +295,72 @@ ${analysis.archetypes.map(a => `- ${a.type}: ${a.description}`).join('\n')}
                 ref={interpretationRef}
                 className={`prose max-w-none dark:prose-invert max-h-[400px] overflow-y-auto pr-2 ${isTyping ? 'typing-animation' : ''}`}
               >
-                {formatText(analysis.interpretation)}
-                {isTyping && (
-                  <span className="typing-cursor">|</span>
+                {(isLoading && !analysis.interpretation) ? (
+                  <LoadingAnimation />
+                ) : (
+                  <>
+                    {analysis.interpretation ? (
+                      formatText(analysis.interpretation)
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-gray-500 dark:text-gray-400">No interpretation available yet.</p>
+                        {isLoading && <LoadingAnimation />}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
 
-            {activeTab === 'symbols' && analysis.symbols.length > 0 && (
+            {activeTab === 'symbols' && (
               <div className="max-h-[400px] overflow-y-auto pr-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {analysis.symbols.map((symbol, index) => (
+                {isLoading || analysis.symbols.length === 0 ? (
+                  <LoadingAnimation />
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {analysis.symbols.map((symbol, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="dream-symbol rounded-lg p-3 bg-gray-50 dark:bg-gray-800/50"
+                      >
+                        <div className="flex items-start justify-between">
+                          <h4 className="font-medium text-indigo-600 dark:text-indigo-400">{symbol.name}</h4>
+                          {symbol.frequency > 1 && (
+                            <span className="text-xs px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full">
+                              {symbol.frequency}×
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm mt-1 text-gray-600 dark:text-gray-300">{symbol.meaning}</p>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'archetypes' && (
+              <div className="max-h-[400px] overflow-y-auto pr-2">
+                {isLoading || analysis.archetypes.length === 0 ? (
+                  <LoadingAnimation />
+                ) : (
+                  analysis.archetypes.map((archetype, index) => (
                     <motion.div
                       key={index}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="dream-symbol rounded-lg p-3 bg-gray-50 dark:bg-gray-800/50"
+                      transition={{ delay: index * 0.1 }}
+                      className="dream-archetype rounded-lg p-4 mb-4 bg-gray-50 dark:bg-gray-800/50"
                     >
-                      <div className="flex items-start justify-between">
-                        <h4 className="font-medium text-indigo-600 dark:text-indigo-400">{symbol.name}</h4>
-                        {symbol.frequency > 1 && (
-                          <span className="text-xs px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full">
-                            {symbol.frequency}×
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm mt-1 text-gray-600 dark:text-gray-300">{symbol.meaning}</p>
+                      <h4 className="font-medium text-lg text-purple-600 dark:text-purple-400 capitalize">{archetype.type}</h4>
+                      <p className="text-sm mt-2 text-gray-700 dark:text-gray-300">{archetype.description}</p>
+                      <p className="text-sm mt-2 text-gray-600 dark:text-gray-400 italic">{archetype.significance}</p>
                     </motion.div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'archetypes' && analysis.archetypes.length > 0 && (
-              <div className="max-h-[400px] overflow-y-auto pr-2">
-                {analysis.archetypes.map((archetype, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="dream-archetype rounded-lg p-4 mb-4 bg-gray-50 dark:bg-gray-800/50"
-                  >
-                    <h4 className="font-medium text-lg text-purple-600 dark:text-purple-400 capitalize">{archetype.type}</h4>
-                    <p className="text-sm mt-2 text-gray-700 dark:text-gray-300">{archetype.description}</p>
-                    <p className="text-sm mt-2 text-gray-600 dark:text-gray-400 italic">{archetype.significance}</p>
-                  </motion.div>
-                ))}
+                  ))
+                )}
               </div>
             )}
           </motion.div>
