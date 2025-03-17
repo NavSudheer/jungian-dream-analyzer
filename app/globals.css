@@ -177,18 +177,52 @@
   }
 }
 
+/* Dream analysis typing animation */
+.typing-animation {
+  position: relative;
+}
+
+.typing-animation p {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.typing-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  background-color: currentColor;
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  from, to { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* Dreamlike UI Elements */
 .dream-card {
-  background: var(--dream-card-bg);
-  border: 1px solid var(--dream-card-border);
-  box-shadow: 0 8px 30px var(--dream-card-shadow);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   transition: all 0.3s ease;
 }
 
 .dream-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 40px var(--dream-card-shadow);
+  box-shadow: 0 12px 40px rgba(31, 38, 135, 0.2);
+}
+
+.dark .dream-card {
+  background: rgba(17, 24, 39, 0.8);
+  border: 1px solid rgba(55, 65, 81, 0.3);
 }
 
 .dream-input {
@@ -265,42 +299,6 @@
   100% {
     background-position: 100% 100%;
   }
-}
-
-/* Typing animation styles */
-.typing-animation {
-  position: relative;
-}
-
-.typing-cursor {
-  display: inline-block;
-  width: 2px;
-  height: 1.2em;
-  background-color: var(--dream-primary);
-  margin-left: 2px;
-  animation: blink 1s step-end infinite;
-  vertical-align: text-bottom;
-}
-
-@keyframes blink {
-  from, to {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
-  }
-}
-
-/* Add a subtle highlight to the newest text */
-.typing-animation p:last-child {
-  background: linear-gradient(90deg, transparent 0%, rgba(99, 102, 241, 0.05) 100%);
-  border-radius: 4px;
-  padding: 2px 4px;
-  transition: background 0.5s ease-out;
-}
-
-.dark .typing-animation p:last-child {
-  background: linear-gradient(90deg, transparent 0%, rgba(129, 140, 248, 0.1) 100%);
 }
 
 /* Dream symbols and archetypes styling */

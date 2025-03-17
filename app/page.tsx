@@ -40,6 +40,8 @@ export default function Home() {
     setIsAnalyzing(true);
     setActiveView('analysis');
     
+    console.log("Starting dream analysis...");
+    
     try {
       // Create a partial analysis object to display while streaming
       const initialAnalysis: DreamAnalysis = {
@@ -50,28 +52,40 @@ export default function Home() {
       };
       
       setAnalysis(initialAnalysis);
+      console.log("Set initial analysis object");
       
       // Call analyzeDream with a callback for streaming updates
       const dreamAnalysis = await analyzeDream(text, (updatedAnalysis) => {
+        console.log("Received streaming update:", {
+          hasInterpretation: !!updatedAnalysis.interpretation,
+          interpretationLength: updatedAnalysis.interpretation?.length || 0,
+          symbolsCount: updatedAnalysis.symbols?.length || 0,
+          archetypesCount: updatedAnalysis.archetypes?.length || 0
+        });
+        
         // Update the analysis state with each streaming update
         setAnalysis(prevAnalysis => {
           if (!prevAnalysis) return updatedAnalysis;
           
-          return {
+          const newAnalysis = {
             ...prevAnalysis,
             interpretation: updatedAnalysis.interpretation || prevAnalysis.interpretation,
             symbols: updatedAnalysis.symbols?.length ? updatedAnalysis.symbols : prevAnalysis.symbols,
             archetypes: updatedAnalysis.archetypes?.length ? updatedAnalysis.archetypes : prevAnalysis.archetypes,
             timestamp: prevAnalysis.timestamp,
           };
+          
+          return newAnalysis;
         });
       });
       
       // Update with the complete analysis
+      console.log("Analysis complete, setting final result");
       setAnalysis(dreamAnalysis);
     } catch (error) {
       console.error('Error analyzing dream:', error);
     } finally {
+      console.log("Setting isAnalyzing to false");
       setIsAnalyzing(false);
     }
   };
@@ -243,6 +257,7 @@ export default function Home() {
                   dreamContent={selectedDream?.content || dreamText}
                   onSave={handleSaveAnalysis}
                   onNewDream={handleNewDream}
+                  isLoading={isAnalyzing}
                 />
               )}
             </motion.div>
